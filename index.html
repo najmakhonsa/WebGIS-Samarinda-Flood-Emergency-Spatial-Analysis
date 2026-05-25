@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Samarinda Flood & Emergency WebGIS</title>
+  <meta name="description" content="WebGIS analisis risiko banjir dan keterjangkauan layanan darurat Kota Samarinda." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-search@3.0.9/dist/leaflet-search.min.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <!-- LOADING OVERLAY -->
+  <div id="loading" class="loading-overlay">
+    <div class="spinner"></div>
+    <h2 id="loadingText">Memuat Data Spasial...</h2>
+    <p id="loadingSubText">Mohon tunggu sebentar</p>
+  </div>
+
+  <div class="bg-glow g1"></div>
+  <div class="bg-glow g2"></div>
+  <div class="bg-glow g3"></div>
+
+  <div class="app-container">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar glass">
+
+      <div class="logo-area">
+        <div class="logo-icon"><i class="fa-solid fa-water"></i></div>
+        <div>
+          <h1>Samarinda WebGIS</h1>
+          <p>Flood &amp; Emergency Spatial Analysis</p>
+        </div>
+      </div>
+
+      <!-- TABS -->
+      <div class="tab-group">
+        <button class="tab-btn active" id="tabFlood" onclick="switchMode('flood')">
+          <i class="fa-solid fa-droplet"></i> Flood Risk
+        </button>
+        <button class="tab-btn" id="tabEmergency" onclick="switchMode('emergency')">
+          <i class="fa-solid fa-truck-medical"></i> Emergency
+        </button>
+      </div>
+
+      <!-- ===== FLOOD PANEL ===== -->
+      <div id="panelFlood" class="mode-panel">
+        <div class="insight-card">
+          <i class="fa-solid fa-circle-info insight-icon"></i>
+          <p>Visualisasi risiko banjir berdasarkan buffer jarak terhadap aliran sungai. Heatmap menunjukkan intensitas
+            kedekatan dengan sumber banjir.</p>
+        </div>
+
+        <div class="section-title"><i class="fa-solid fa-chart-bar"></i> Ringkasan Analisis</div>
+        <div class="stats-grid">
+          <div class="stat-card high">
+            <span class="stat-num" id="countHighRiskBuildings">—</span>
+            <span class="stat-label">Bangunan Risiko Tinggi</span>
+          </div>
+          <div class="stat-card blue">
+            <span class="stat-num" id="countWaterways">—</span>
+            <span class="stat-label">Segmen Sungai</span>
+          </div>
+        </div>
+
+        <div class="section-title"><i class="fa-solid fa-layer-group"></i> Layer Control</div>
+        <div class="layer-list">
+          <label class="layer-item">
+            <input type="checkbox" id="togHeatmap" checked>
+            <span class="layer-dot grad-dot"></span>
+            Heatmap Kedekatan Sungai
+          </label>
+          <label class="layer-item">
+            <input type="checkbox" id="togWaterways" checked>
+            <span class="layer-dot" style="background:#00d4ff;"></span>
+            Aliran Sungai
+          </label>
+          <label class="layer-item">
+            <input type="checkbox" id="togHighRisk" checked>
+            <span class="layer-dot" style="background:#ff2b2b;"></span>
+            Buffer Risiko Tinggi
+          </label>
+          <label class="layer-item">
+            <input type="checkbox" id="togMedRisk" checked>
+            <span class="layer-dot" style="background:#ff9d00;"></span>
+            Buffer Risiko Sedang
+          </label>
+          <label class="layer-item">
+            <input type="checkbox" id="togLowRisk" checked>
+            <span class="layer-dot" style="background:#ffea00;"></span>
+            Buffer Risiko Rendah
+          </label>
+        </div>
+
+        <div class="section-title"><i class="fa-solid fa-map-pin"></i> Legenda</div>
+        <div class="legend-list">
+          <div class="legend-row"><span class="legend-sw" style="background:#ff2b2b;opacity:.75;"></span>Buffer Risiko
+            Tinggi</div>
+          <div class="legend-row"><span class="legend-sw" style="background:#ff9d00;opacity:.7;"></span>Buffer Risiko
+            Sedang</div>
+          <div class="legend-row"><span class="legend-sw" style="background:#ffea00;opacity:.65;"></span>Buffer Risiko
+            Rendah</div>
+          <div class="legend-row"><span class="legend-sw" style="background:#00d4ff;"></span>Aliran Sungai</div>
+          <div class="legend-row"><span class="legend-sw gradient-sw"></span>Heatmap (Biru→Merah)</div>
+        </div>
+      </div>
+
+      <!-- ===== EMERGENCY PANEL ===== -->
+      <div id="panelEmergency" class="mode-panel hidden">
+        <div class="insight-card">
+          <i class="fa-solid fa-circle-info insight-icon"></i>
+          <p>Distribusi dan jangkauan fasilitas darurat Kota Samarinda. Lingkaran menunjukkan radius cakupan 1km dari
+            setiap fasilitas.</p>
+        </div>
+
+        <div class="section-title"><i class="fa-solid fa-chart-bar"></i> Fasilitas Darurat</div>
+        <div class="stats-grid three-col">
+          <div class="stat-card hosp">
+            <span class="stat-num" id="countHospital">14</span>
+            <span class="stat-label">RS &amp; Klinik</span>
+          </div>
+          <div class="stat-card fire">
+            <span class="stat-num" id="countFire">3</span>
+            <span class="stat-label">Pemadam</span>
+          </div>
+          <div class="stat-card amb">
+            <span class="stat-num" id="countAmbulance">—</span>
+            <span class="stat-label">Ambulans</span>
+          </div>
+        </div>
+
+        <div class="section-title"><i class="fa-solid fa-layer-group"></i> Layer Control</div>
+        <div class="layer-list">
+          <label class="layer-item">
+            <input type="checkbox" id="togHospital" checked>
+            <span class="layer-dot" style="background:#ff0077;"></span>
+            Rumah Sakit &amp; Klinik
+          </label>
+          <label class="layer-item">
+            <input type="checkbox" id="togHospCoverage">
+            <span class="layer-dot" style="background:rgba(255,0,119,.15); border:2px dashed #ff0077;"></span>
+            Cakupan RS (1km)
+          </label>
+          <label class="layer-item">
+            <input type="checkbox" id="togFire" checked>
+            <span class="layer-dot" style="background:#ff6200;"></span>
+            Stasiun Pemadam
+          </label>
+          <label class="layer-item">
+            <input type="checkbox" id="togFireCoverage">
+            <span class="layer-dot" style="background:rgba(255,98,0,.15); border:2px dashed #ff6200;"></span>
+            Cakupan Damkar (1km)
+          </label>
+          <label class="layer-item">
+            <input type="checkbox" id="togHighRiskRef" checked>
+            <span class="layer-dot" style="background:#ff2b2b; opacity:.6;"></span>
+            Area Risiko Tinggi (ref)
+          </label>
+        </div>
+
+        <div class="section-title"><i class="fa-solid fa-map-pin"></i> Legenda</div>
+        <div class="legend-list">
+          <div class="legend-row"><span class="legend-sw circ" style="background:#ff0077;"></span>Rumah Sakit / Klinik
+          </div>
+          <div class="legend-row"><span class="legend-sw circ" style="background:#ff6200;"></span>Stasiun Pemadam</div>
+          <div class="legend-row"><span class="legend-sw" style="background:#ff2b2b;opacity:.5;"></span>Area Rawan
+            Tinggi</div>
+        </div>
+      </div>
+
+      <!-- BASEMAP -->
+      <div class="section-title"><i class="fa-solid fa-globe"></i> Basemap</div>
+      <div class="basemap-group">
+        <button class="bm-btn active" onclick="switchBasemap('osm',this)">OSM</button>
+        <button class="bm-btn" onclick="switchBasemap('satellite',this)">Satellite</button>
+        <button class="bm-btn" onclick="switchBasemap('dark',this)">Dark</button>
+      </div>
+
+      <!-- CREDITS -->
+      <div class="credits-box">
+        <div class="section-title" style="margin-top:0"><i class="fa-solid fa-book"></i> Sumber Data</div>
+        <ul class="credits-list">
+          <li><i class="fa-solid fa-database"></i> OSM Contributors</li>
+          <li><i class="fa-solid fa-map"></i> CartoDB, Esri</li>
+          <li><i class="fa-solid fa-location-dot"></i> QGIS Analysis, Samarinda</li>
+          <li><i class="fa-solid fa-code"></i> Leaflet.js, Turf.js</li>
+        </ul>
+      </div>
+
+    </aside>
+
+    <!-- MAP -->
+    <div class="map-wrapper">
+      <div id="map"></div>
+
+      <!-- COORD BAR -->
+      <div class="coord-bar glass">
+        <i class="fa-solid fa-crosshairs"></i>
+        <span id="coordsText">Arahkan kursor ke peta</span>
+      </div>
+
+      <!-- THEME TOGGLE -->
+      <button id="themeToggle" class="icon-btn glass" title="Toggle Theme">
+        <i class="fa-solid fa-moon"></i>
+      </button>
+
+      <!-- NORTH ARROW -->
+      <div class="north-arrow glass">
+        <span class="n-label">N</span>
+        <div class="arrow-tri up"></div>
+        <div class="arrow-tri down"></div>
+      </div>
+
+      <!-- AUTHOR CREDIT -->
+      <div class="author-credit">Najma Khonsa Tsabita</div>
+    </div>
+
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-search@3.0.9/dist/leaflet-search.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+  <script src="script.js"></script>
+</body>
+5555555555
+
+</html>
